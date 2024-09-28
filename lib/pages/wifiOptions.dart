@@ -57,7 +57,7 @@ class BodyWifi extends StatelessWidget {
              ],
            ),
            SizedBox(height: 15.0,),
-           Text(wifi.wifiDescription,maxLines: 2,overflow: TextOverflow.ellipsis,),
+           Text(wifi.wifiDescription,maxLines: 1,overflow: TextOverflow.ellipsis,),
  Spacer(),
 
  Padding(padding: EdgeInsets.all(8.0),child:           FilledButton(onPressed: (){}, child: Text(wifi.labelButton),style:

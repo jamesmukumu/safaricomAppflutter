@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 class Lipanampesa extends StatelessWidget {
   const Lipanampesa({super.key});
@@ -63,9 +64,9 @@ setState(() {
   }else{
     errMsg = null;
   }
-  
+
   showButton = !till.isEmpty && !Amount.isEmpty;
-  
+
 });
   }
 
@@ -198,7 +199,7 @@ Amount.addListener(validateApprove);
             errorText: errText
           ),
         ),
-        
+
         SizedBox(height: 20.0,),
         TextField(
           controller: accountNumber,
@@ -239,31 +240,179 @@ class pochiBiashara extends StatefulWidget {
   State<pochiBiashara> createState() => _pochiBiasharaState();
 }
 
+
+
+
+
 class _pochiBiasharaState extends State<pochiBiashara> {
+  TextEditingController phoneNumber = TextEditingController();
+  TextEditingController amount = TextEditingController();
+  TextEditingController text = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  String? errMsg;
+  List<Contact> myContacts = [];
+  bool choosePochi = false;
+  bool payBtn = false;
+
+
+  void validator() {
+    final phone = phoneNumber.text;
+    final Amount = amount.text;
+
+    setState(() {
+      if (phone.length != 10) {
+        errMsg = "Invalid Phone Format";
+      } else if (!phone.isEmpty && !Amount.isEmpty && phone.length == 10) {
+        payBtn = true;
+        errMsg = null;
+      } else {
+        payBtn = false;
+        errMsg = null;
+      }
+    });
+  }
+
+
+  Future authorizeAccessContacts() async {
+    if (await FlutterContacts.requestPermission(readonly: true)) {
+      List<Contact> contacts = await FlutterContacts.getContacts(
+          withProperties: true);
+      setState(() {
+        myContacts = contacts;
+      });
+      print(myContacts);
+    } else {
+      print("User has denied access to contacts");
+    }
+  }
+
+
+  Widget chooseAccount() {
+    return Autocomplete<Contact>(
+      optionsMaxHeight: 450.0,
+      optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<Contact> onSelected, Iterable<Contact> options){
+return Material(
+  elevation: 4.0,
+  child: ListView(
+    children: options.map((contact){
+      return ListTile(
+        title:Text(contact.displayName) ,
+    subtitle: Text(
+      contact.phones.isNotEmpty ? contact.phones.first.normalizedNumber:"no Phone Number available"
+    ),
+    onTap: (){
+          onSelected(contact);
+    },
+    );
+    }).toList(),
+  ),
+);
+      },
+      optionsBuilder: (TextEditingValue pochiName) {
+        print("Searching form ${pochiName.text}");
+        print(myContacts);
+        if (pochiName.text.isEmpty) {
+          return myContacts;
+        }
+        return myContacts.where((Contact poch) {
+          return poch.displayName.toLowerCase().contains(
+              pochiName.text.toLowerCase());
+        });
+      },
+      displayStringForOption: (Contact pochi) => pochi.displayName,
+      fieldViewBuilder: (BuildContext context,
+          TextEditingController textEditingController, FocusNode focusNode,
+          VoidCallback onFieldSubmitted) {
+        return TextField(
+          controller: textEditingController,
+          focusNode: focusNode,
+          onSubmitted: (String text) {
+            onFieldSubmitted();
+          },
+          decoration: InputDecoration(
+              hintText: "Search Number/Pochi"
+          ),
+        );
+      },
+      onSelected: (Contact cont) {
+        if (cont.phones.isNotEmpty) {
+          setState(() {
+            phoneNumber.text =
+                cont.phones.first.normalizedNumber.replaceAll("+254", '0');
+            choosePochi = false; // Set this to false after selecting a contact
+          });
+        } else {
+          print("No phone number available");
+        }
+      },
+    );
+  }
+
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    phoneNumber.dispose();
+    amount.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    phoneNumber.addListener(validator);
+    amount.addListener(validator);
+    authorizeAccessContacts();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Form(child: Column(
-      children: [
-        TextField(
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: "Phone Number"
+    return Form(
+      child: Column(
+        children: [
+          choosePochi ? chooseAccount() :
+          Column(
+            children: [
+              TextField(
+                controller: phoneNumber,
+                keyboardType: TextInputType.number,
+                maxLength: 10,
+                decoration: InputDecoration(
+                  hintText: "Phone Number",
+                  errorText: errMsg,
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      print(myContacts);
+                      setState(() {
+                        choosePochi = true; // Set to true to show contact list
+                      });
+                    },
+                    icon: Icon(Icons.search),
+                  ),
+                ),
+              ),
+              SizedBox(height: 60.0),
+              TextField(
+                controller: amount,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: "Amount",
+                ),
+              ),
+              SizedBox(height: 55.0),
+              FilledButton(
+                onPressed: payBtn ? () {} : null,
+                child: Text("Pay"),
+                style: ButtonStyle(
+                  backgroundColor: payBtn
+                      ? MaterialStateProperty.all(Colors.green.shade600)
+                      : MaterialStateProperty.all(Colors.grey.shade600),
+                ),
+              ),
+            ],
           ),
-        ),
-        SizedBox(height: 60.0,),
-        TextField(
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-              hintText: "Amount"
-          ),
-        ),
-        SizedBox(height: 55.0,),
-        FilledButton(onPressed: (){}, child: Text("Pay"),style: ButtonStyle(
-          backgroundColor: MaterialStateProperty.all(Colors.green.shade600)
-        ),)
-
-
-      ],
-    ));
+        ],
+      ),
+    );
   }
 }

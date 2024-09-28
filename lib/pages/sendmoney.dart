@@ -49,7 +49,7 @@ class _MpesaformState extends State<Mpesaform> {
 
   Future FetchContacts() async {
     if (await FlutterContacts.requestPermission(readonly: true)) {
-      List<Contact> myContacts = await FlutterContacts.getContacts(withProperties: true); // withProperties ensures phone numbers are fetched
+      List<Contact> myContacts = await FlutterContacts.getContacts(withProperties: true);
       setState(() {
         contacts = myContacts;
       });
@@ -61,6 +61,23 @@ class _MpesaformState extends State<Mpesaform> {
   Widget contactList() {
     return Autocomplete<Contact>(
       optionsMaxHeight: 300.0,
+      optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<Contact> onSelected, Iterable<Contact> options){
+        return Material(
+          elevation: 4.0,
+          child: ListView(
+            children: options.map((contact){
+              return ListTile(
+                title:Text(contact.displayName) ,
+                subtitle: Text(
+                  contact.phones.isNotEmpty ? contact.phones.first.normalizedNumber:"no phone number available"
+                ),
+                onTap: (){onSelected(contact);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
       optionsBuilder: (TextEditingValue nameList) {
         if (nameList.text.isEmpty) {
           return contacts;
@@ -95,7 +112,7 @@ class _MpesaformState extends State<Mpesaform> {
         } else {
           print('No phone number available for this contact.');
           setState(() {
-            phoneNumber.clear();  // Clear the phone number field if no phone number
+            phoneNumber.clear();
             chooseContact = false;
           });
         }
